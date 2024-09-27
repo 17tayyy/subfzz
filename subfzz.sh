@@ -24,6 +24,7 @@ echo -e "$ASCII_ART"
 echo -e "\n"
 
 function cleanup {
+    echo -e "\n${RED}[+] Results saved${RESET}"
     echo -e "\n${RED}[!] Exiting...${RESET}"
     exit 0
 }
