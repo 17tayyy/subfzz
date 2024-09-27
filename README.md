@@ -28,7 +28,7 @@ This script allows you to perform subdomain enumeration and directory fuzzing on
 To enumerate subdomains for a domain using a wordlist file called `/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt`:
 
 ```bash
-./script.sh example.com subdomain subdomains.txt
+./script.sh example.com subdomain /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
 ```
 
 This will check for active subdomains in the provided list and output the results.
@@ -36,7 +36,7 @@ This will check for active subdomains in the provided list and output the result
 To fuzz directories or files on a domain using a wordlist file called `/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt`:
 
 ```bash
-./script.sh example.com fuzz fuzzing.txt
+./script.sh example.com fuzz /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
 ```
 
 This will test for valid directories or files based on the wordlist provided.
