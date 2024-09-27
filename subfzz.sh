@@ -1,10 +1,27 @@
 #!/bin/bash
 
+ASCII_ART='
+\033[1;36m ______   __  __    _______   ______   ______    ______     
+/_____/\ /_/\/_/\ /_______/\ /_____/\ /_____/\  /_____/\    
+\::::_\/_\:\ \:\ \\::: _  \ \\::::_\/_\:::__\/  \:::__\/    
+ \:\/___/\\:\ \:\ \\::(_)  \/_\:\/___/\  /: /      /: /     
+  \_::._\:\\:\ \:\ \\::  _  \ \\:::._\/ /::/___   /::/___   
+    /____\:\\:\_\:\ \\::(_)  \ \\:\ \  /_:/____/\/_:/____/\ 
+    \_____\/ \_____\/ \_______\/ \_\/  \_______\/\_______\/ 
+     
+     
+     by: tay \033[0m
+'
+
 GREEN="\033[0;32m"
 RED="\033[0;31m"
 YELLOW="\033[0;33m"
 BLUE="\033[0;34m"
 RESET="\033[0m"
+
+echo -e "\n"
+echo -e "$ASCII_ART"
+echo -e "\n"
 
 function cleanup {
     echo -e "\n${RED}[!] Exiting...${RESET}"
@@ -14,18 +31,25 @@ function cleanup {
 trap cleanup SIGINT
 
 if [ "$#" -lt 3 ]; then
-    echo -e "${RED}Usage: $0 <domain> <option> [<subdomains_file> or <fuzzing_file>]${RESET}"
-    echo -e "${YELLOW}Options:${RESET} ${BLUE}subdomain${RESET} or ${BLUE}fuzz${RESET}"
+    echo -e "${RED}[!] Usage: $0 <domain> <option> [<subdomains_file> or <fuzzing_file>]${RESET}"
+    echo -e "${YELLOW}[Options: subdomain or fuzz]${RESET}"
     exit 1
 fi
 
 DOMAIN="$1"
 OPTION="$2"
 
-echo -e "${BLUE}[*] Starting process for: $DOMAIN${RESET}"
-echo ""
+if [ -f subdomain_results.txt ]; then
+    rm subdomain_results.txt
+    echo -e "${GREEN}[+] Old subdomain results file deleted.${RESET}"
+fi
 
-SUBDOMAIN_OUTPUT=""
+if [ -f fuzz_results.txt ]; then
+    rm fuzz_results.txt
+    echo -e "${GREEN}[+] Old fuzz results file deleted.${RESET}"
+fi
+
+echo -e "${BLUE}[*] Starting process for: $DOMAIN${RESET}"
 
 function check_subdomain {
     FULL_DOMAIN="$1.$DOMAIN"
@@ -39,7 +63,7 @@ function check_subdomain {
 function enumerate_subdomains {
     SUBDOMAINS_FILE="$3"
     if [ ! -f "$SUBDOMAINS_FILE" ]; then
-        echo -e "${RED}Subdomains file not found!${RESET}"
+        echo -e "${RED}[!] Subdomains file not found!${RESET}"
         exit 1
     fi
     TOTAL_SUBDOMAINS=$(wc -l < "$SUBDOMAINS_FILE")
@@ -61,8 +85,8 @@ function enumerate_subdomains {
 
 function display_subdomain_output {
     if [ -f subdomain_results.txt ]; then
+        echo -e "${GREEN}[+] Results saved in subdomain_results.txt${RESET}"
         cat subdomain_results.txt
-        rm subdomain_results.txt
     else
         echo -e "${YELLOW}[-] No subdomains found.${RESET}"
     fi
@@ -71,21 +95,31 @@ function display_subdomain_output {
 function fuzzing {
     FUZZ_FILE="$3"
     if [ ! -f "$FUZZ_FILE" ]; then
-        echo -e "${RED}Fuzzing file not found!${RESET}"
+        echo -e "${RED}[!] Fuzzing file not found!${RESET}"
         exit 1
     fi
+
     TOTAL_FUZZ=$(wc -l < "$FUZZ_FILE")
-    
-    echo -e "${YELLOW}[+] Starting fuzzing on $DOMAIN...${RESET}"
     COUNT=0
-    while IFS= read -r FUZZ; do
+    echo -e "${YELLOW}[+] Starting fuzzing on $DOMAIN...${RESET}"
+
+    function perform_fuzz {
+        local FUZZ="$1"
         URL="http://$DOMAIN/$FUZZ"
-        {
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
-            if [ "$RESPONSE" -ne 404 ]; then
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+        if [ "$RESPONSE" -ne 404 ] && [ "$RESPONSE" -ne 403 ]; then
+            {
                 echo -e "${GREEN}[+] Fuzzing found: $URL (Response code: $RESPONSE)${RESET}"
-            fi
-        } > /dev/null 2>&1 &
+                echo "$URL (Response code: $RESPONSE)" >> fuzz_results.txt
+            }
+        fi
+    }
+
+    while IFS= read -r FUZZ; do
+        if [[ -z "$FUZZ" || "$FUZZ" == \#* ]]; then
+            continue
+        fi
+        perform_fuzz "$FUZZ" &
 
         COUNT=$((COUNT + 1))
         if (( COUNT % 10 == 0 )); then
@@ -93,25 +127,30 @@ function fuzzing {
             echo -ne "\r${YELLOW}[+] Fuzzing Progress: $PERCENTAGE% (${COUNT}/${TOTAL_FUZZ})${RESET}"
         fi
     done < "$FUZZ_FILE"
+
     wait
     echo -e "\n${YELLOW}[*] Fuzzing completed.${RESET}"
+    if [ -f fuzz_results.txt ]; then
+        echo -e "${GREEN}[+] Results saved in fuzz_results.txt${RESET}"
+    else
+        echo -e "${YELLOW}[-] No valid fuzzing results found.${RESET}"
+    fi
 }
 
 if [ "$OPTION" == "subdomain" ]; then
     if [ "$#" -ne 3 ]; then
-        echo -e "${RED}Please provide a subdomains file for subdomain enumeration.${RESET}"
+        echo -e "${RED}[!] Please provide a subdomains file for subdomain enumeration.${RESET}"
         exit 1
     fi
     enumerate_subdomains "$DOMAIN" "$OPTION" "$3"
     display_subdomain_output
 elif [ "$OPTION" == "fuzz" ]; then
     if [ "$#" -ne 3 ]; then
-        echo -e "${RED}Please provide a fuzzing file for fuzzing.${RESET}"
+        echo -e "${RED}[!] Please provide a fuzzing file for fuzzing.${RESET}"
         exit 1
     fi
     fuzzing "$DOMAIN" "$OPTION" "$3"
 else
-    echo -e "${RED}Invalid option! Use 'subdomain' or 'fuzz'.${RESET}"
+    echo -e "${RED}[!] Invalid option! Use 'subdomain' or 'fuzz'.${RESET}"
     exit 1
 fi
-
