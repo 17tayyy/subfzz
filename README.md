@@ -1,3 +1,4 @@
+![Foto](subfuzz.png)
 
 # Domain Enumeration & Fuzzing Script
 
