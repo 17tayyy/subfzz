@@ -1,4 +1,5 @@
-![Foto](subfuzz.png)
+![image](https://github.com/user-attachments/assets/a60aba99-f8b4-4eb6-abfe-019ccc0a12e2)
+
 
 # Domain Enumeration & Fuzzing Script
 
