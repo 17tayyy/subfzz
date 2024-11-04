@@ -1,7 +1,7 @@
+
+# Subfzz
+
 ![image](https://github.com/user-attachments/assets/a60aba99-f8b4-4eb6-abfe-019ccc0a12e2)
-
-
-# Domain Enumeration & Fuzzing Script
 
 This script allows you to perform subdomain enumeration and directory fuzzing on a specified domain. Based on the chosen option (`subdomain` or `fuzz`), it will either enumerate subdomains or fuzz for directories/files within the domain.
 
